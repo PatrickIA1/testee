@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cora - Assistente dos Guardiões</title>
+
+  <style>
+    :root{
+      --brand-1: #1a7b63; /* principal */
+      --brand-2: #135a4a; /* escuro */
+      --brand-3: #45b19a; /* realce */
+      --bg-1: #0f172a;    /* fundo base (azul petróleo escuro) */
+      --bg-2: #0b1225;    /* fundo profundo */
+      --text-1: #EAF4F2;  /* texto principal claro */
+      --text-2: #B8C7C3;  /* texto secundário */
+      --bubble-bot: #101826;
+      --bubble-user: #1b2a3f;
+      --shadow: 0 10px 25px rgba(0,0,0,0.25);
+      --radius-xl: 20px;
+    }
+
+    *{ box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1000px 600px at 10% 10%, #14384d 0%, #0d1b2a 60%, #0b1225 100%),
+                  radial-gradient(900px 500px at 90% 90%, rgba(26,123,99,.25) 0%, rgba(19,90,74,0) 60%);
+      color: var(--text-1);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .app{
+      width: 100%;
+      max-width: 1080px;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 92px 1fr 82px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: var(--shadow);
+    }
+
+    header{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(135deg, rgba(26,123,99,0.20), rgba(19,90,74,0.15));
+    }
+    .brand{ display: flex; align-items: center; gap: 12px; }
+    /* Avatar fixo do cabeçalho (Cora) com ⚓ */
+    .brand .avatar{
+      width: 44px; height: 44px; border-radius: 50%;
+      background-color: var(--brand-1);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; color:#fff;
+      box-shadow: 0 6px 14px rgba(0,0,0,.35);
+    }
+    .brand .meta{ display:flex; flex-direction:column; }
+    .brand .title{ font-weight: 700; font-size: 1.05rem; letter-spacing:.2px; }
+    .status{ display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: .9rem; }
+    .status .dot{ width:10px; height:10px; border-radius:50%; background: #32d583; box-shadow: 0 0 10px rgba(50,213,131,.6); }
+
+    .actions{ margin-left: auto; display:flex; align-items:center; gap: 10px; }
+    .icon-btn{ width: 38px; height: 38px; border-radius: 12px; border:1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); display:grid; place-items:center; cursor:pointer; transition:.2s; }
+    .icon-btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.07); }
+    .icon{ width:18px; height:18px; opacity:.9; }
+
+    /* ====== CHAT LIST ====== */
+    #chat{
+      overflow-y: auto;
+      padding: 28px 18px 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02))
+                  ,url('data:image/svg+xml;utf8,<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="d" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="1" cy="1" r="1" fill="%23FFFFFF16"/></pattern></defs><rect width="100%" height="100%" fill="url(%23d)"/></svg>');
+      scroll-behavior: smooth;
+    }
+
+    .msg{ display:flex; align-items:flex-end; gap:10px; margin: 10px 0; animation: slideIn .18s ease; max-width: 82%; }
+    .msg.user{ margin-left:auto; flex-direction: row-reverse; }
+    .msg .avatar{
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: .8rem; color:#fff;
+      box-shadow: 0 6px 16px rgba(0,0,0,.35);
+    }
+
+    .bubble{
+      background: var(--bubble-bot);
+      color: var(--text-1);
+      padding: 12px 14px;
+      border-radius: 16px;
+      line-height: 1.55;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+      position: relative;
+    }
+    .msg.user .bubble{ background: linear-gradient(135deg, #1e2f48, #25486b); }
+
+    .bubble .time{ display:block; font-size: .75rem; color: var(--text-2); margin-top: 6px; text-align: right; }
+
+    @keyframes slideIn { from { opacity:0; transform: translateY(8px);} to {opacity:1; transform: translateY(0);} }
+
+    /* Render de mídias */
+    img, video, iframe { max-width: 100%; border-radius: 12px; margin-top: 8px; }
+    .full-width-media iframe { width: 100%; height: 100vh; border: none; }
+
+    /* ====== TYPING ====== */
+    .typing{
+      display:inline-flex; align-items:center; gap:6px; padding: 8px 12px; background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08); border-radius: 999px; margin-left: 6px;
+    }
+    .typing .dot{ width:6px; height:6px; border-radius:50%; background: #cfeee7; animation: bounce 1.4s infinite ease-in-out; }
+    .typing .dot:nth-child(2){ animation-delay: .2s; }
+    .typing .dot:nth-child(3){ animation-delay: .4s; }
+    @keyframes bounce{ 0%,80%,100%{ transform: scale(0);} 40%{ transform: scale(1);} }
+
+    /* ====== INPUT BAR ====== */
+    #form{
+      display:flex; align-items:center; gap:10px; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    }
+    .input-wrap{ flex:1; display:flex; align-items:center; gap:10px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 10px 12px; }
+    #input{
+      flex:1; background: transparent; border: none; outline: none; color: var(--text-1); font-size: 1rem;
+    }
+    #input::placeholder{ color: #9fb5b0; }
+    .ghost-btn{ width:38px; height:38px; border-radius: 999px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); display:grid; place-items:center; cursor:pointer; transition:.2s; }
+    .ghost-btn:hover{ background: rgba(255,255,255,.1); transform: translateY(-1px); }
+    #send{
+      padding: 0 18px; height: 40px; border-radius: 999px; border:none; cursor:pointer; color: white; font-weight: 600;
+      background: linear-gradient(135deg, var(--brand-1), var(--brand-2)); box-shadow: 0 8px 18px rgba(26,123,99,.35);
+      transition: .2s;
+    }
+    #send:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+
+    /* ====== LOGIN ====== */
+    #login-container{
+      position: fixed; inset: 0; display: grid; place-items: center; z-index: 50;
+      background: radial-gradient(1000px 600px at 0% 0%, rgba(26,123,99,.25) 0%, rgba(26,123,99,0) 60%),
+                  linear-gradient(135deg, #0e1726 0%, #0a1221 100%);
+    }
+    #login-box{
+      width: min(420px, 92vw);
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 20px; padding: 26px 22px; color: var(--text-1);
+      box-shadow: var(--shadow);
+      animation: slideIn .24s ease;
+    }
+    #login-box h2{ margin: 0 0 14px; font-size: 1.25rem; }
+    .login-sub{ color: var(--text-2); margin-bottom: 16px; font-size: .95rem; }
+    .field{ display:flex; align-items:center; gap:10px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
+    .field input{ flex:1; background: transparent; border:none; outline:none; color: var(--text-1); font-size: 1rem; }
+    .field input::placeholder{ color: #9fb5b0; }
+    #login-btn{ width:100%; height: 44px; border-radius: 12px; border:none; cursor:pointer; color:white; font-weight: 700; letter-spacing:.3px; background: linear-gradient(135deg, var(--brand-1), var(--brand-2)); box-shadow: 0 10px 22px rgba(26,123,99,.35); margin-top: 6px; }
+    #error-msg{ color: #ff7b7b; min-height: 1.2em; margin-top: 8px; font-size: .95rem; }
+
+    /* Utility */
+    .hidden{ display:none !important; }
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    @media (max-width: 640px){
+      .msg{ max-width: 92%; }
+      header{ padding: 12px 14px; }
+      #form{ padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div id="login-container">
+    <div id="login-box">
+      <h2>🔒 Login da Cora</h2>
+      <div class="login-sub">Acesse para continuar a conversa com a assistente.</div>
+      <label class="sr-only" for="login-user">Usuário</label>
+      <div class="field">
+        <!-- ícone usuário -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" fill="currentColor" opacity=".9"/></svg>
+        <input type="text" id="login-user" placeholder="Usuário (2 caracteres)" maxlength="2" />
+      </div>
+      <label class="sr-only" for="login-pass">Senha</label>
+      <div class="field">
+        <!-- ícone cadeado -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 8h-1V6a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-6 7.732V17a1 1 0 1 0 2 0v-1.268a2 2 0 1 0-2 0ZM9 8V6a3 3 0 0 1 6 0v2H9Z" fill="currentColor" opacity=".9"/></svg>
+        <input type="password" id="login-pass" placeholder="Senha (4 caracteres)" maxlength="4" />
+      </div>
+      <button id="login-btn">Entrar</button>
+      <div id="error-msg"></div>
+    </div>
+  </div>
+
+  <!-- APP / CHAT -->
+  <main id="chat-container" class="app hidden" aria-live="polite">
+    <header>
+      <div class="brand">
+        <div class="avatar">⚓</div>
+        <div class="meta">
+          <div class="title">Cora – Assistente dos Guardiões</div>
+          <div class="status"><span class="dot"></span> online agora</div>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="icon-btn" title="Novo chat">
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="icon-btn" title="Opções">
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4z"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <section id="chat"></section>
+
+    <form id="form" autocomplete="off">
+      <div class="input-wrap">
+        <button class="ghost-btn" type="button" title="Anexar">
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6.5l-7.8 7.8a3 3 0 11-4.24-4.24l9-9a4.5 4.5 0 016.36 6.36l-10 10a6 6 0 11-8.48-8.48l8.2-8.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <input type="text" id="input" placeholder="Digite sua mensagem..." />
+      </div>
+      <button id="send" type="submit">Enviar</button>
+    </form>
+  </main>
+
+  <script>
+    // ====== Login (mantido) ======
+    const users = {
+      "01":"X2D9","02":"Q7L3","03":"M4R1","04":"K9T8","05":"F3B7",
+      "06":"A1P6","07":"L0W5","08":"D9V2","09":"C8Y3","10":"N2E4",
+      "11":"Z4H6","12":"B7M1","13":"W5T0","14":"J6K8","15":"H9U3",
+      "16":"R3Q7","17":"V1L5","18":"S2A9","19":"Y6G4","20":"E8Z0",
+      "21":"T0C6","22":"G3X1","23":"U4B8","24":"P9D2","25":"O1F3",
+      "26":"I6N7","27":"M5S0","28":"K2W9","29":"A7R6","30":"C0L4"
+    };
+    let sessionId = "";
+
+    const loginBtn = document.getElementById("login-btn");
+    loginBtn.addEventListener("click", () => {
+      const user = document.getElementById("login-user").value.trim();
+      const pass = document.getElementById("login-pass").value.trim();
+      if(!user || !pass){
+        document.getElementById("error-msg").textContent = "Por favor, preencha usuário e senha.";
+        return;
+      }
+      if(users[user] === pass.toUpperCase()){
+        sessionId = user;
+        document.getElementById("error-msg").textContent = "";
+        document.getElementById("login-container").classList.add('hidden');
+        document.getElementById("chat-container").classList.remove('hidden');
+        addMessage("Olá! Sou a Cora. Como posso ajudar hoje?", 'bot');
+      } else {
+        document.getElementById("error-msg").textContent = "Usuário ou senha incorretos.";
+      }
+    });
+
+    // ====== Chat / n8n (mantido) ======
+    const webhookUrl = "https://n8n-n8n.2vqds9.easypanel.host/webhook/receber-mensagem";
+    const chat  = document.getElementById("chat");
+    const form  = document.getElementById("form");
+    const input = document.getElementById("input");
+
+    function linkifyWithImages(text){
+      const urlPattern = /https?:\/\/[^\s"'}]+/gi;
+      return text.replace(urlPattern, (url) => {
+        if(url.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i)){
+          return `<img src="${url}" alt="imagem">`;
+        }
+        if(url.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i)){
+          return `<video src="${url}" controls></video>`;
+        }
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+        if(ytMatch){
+          const id = ytMatch[1];
+          return `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>`;
+        }
+        if(url.match(/\.pdf(\?.*)?$/i)){
+          return `<iframe src="${url}" width="100%" height="600px" frameborder="0"></iframe>`;
+        }
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      });
+    }
+
+    function normalizeContent(raw) {
+      let obj;
+      if (typeof raw === "string") {
+        try { obj = JSON.parse(raw); } catch { return raw; }
+      } else if (typeof raw === "object") {
+        obj = raw;
+      } else {
+        return String(raw);
+      }
+      let text = obj.output ?? obj.text ?? obj.resposta ?? obj.mensagem ?? "";
+      ["video_url", "imagem_explicativa", "imagens_explicativas", "videos"].forEach((key) => {
+        if (obj[key]) {
+          if (Array.isArray(obj[key])) obj[key].forEach((url) => (text += `\n\n${url}`));
+          else text += `\n\n${obj[key]}`;
+        }
+      });
+      return text.trim();
+    }
+
+    function timeNow(){
+      const d = new Date();
+      return d.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
+    }
+
+    // Avatares em texto (⚓ / VC)
+    function createAvatar(sender) {
+      const avatar = document.createElement("div");
+      avatar.className = 'avatar';
+      if (sender === 'user') {
+        avatar.textContent = 'VC';
+        avatar.style.background = '#1e2f48';
+      } else {
+        avatar.textContent = '⚓';
+        avatar.style.background = '#135a4a';
+      }
+      return avatar;
+    }
+
+    function addMessage(content, sender = "bot") {
+      const normalized = normalizeContent(content);
+      const msg = document.createElement("div");
+      msg.className = `msg ${sender}`;
+
+      const avatar = createAvatar(sender);
+
+      const bubble = document.createElement("div");
+      bubble.className = 'bubble';
+      const html = linkifyWithImages(normalized).replace(/\n/g, "<br>");
+      bubble.innerHTML = html + `<span class="time">${timeNow()}</span>`;
+      if (html.includes(".pdf") && html.includes("<iframe")) bubble.classList.add("full-width-media");
+
+      msg.appendChild(avatar);
+      msg.appendChild(bubble);
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function addLoading(){
+      const msg = document.createElement("div");
+      msg.className = 'msg bot';
+
+      const avatar = createAvatar('bot');
+
+      const bubble = document.createElement("div");
+      bubble.className = 'bubble';
+      bubble.innerHTML = `<span class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>`;
+
+      msg.appendChild(avatar);
+      msg.appendChild(bubble);
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+      return msg;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const userMsg = input.value.trim();
+      if(!userMsg) return;
+      addMessage(userMsg, 'user');
+      input.value = "";
+      const loader = addLoading();
+      try{
+        const res = await fetch(webhookUrl,{
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ mensagem:userMsg, sessionId })
+        });
+        const data = await res.json();
+        loader.remove();
+        addMessage(data, 'bot');
+      }catch(err){
+        console.error('Erro:', err);
+        loader.remove();
+        addMessage("❌ Erro ao falar com a Cora. Tente novamente mais tarde.", 'bot');
+      }
+    });
+  </script>
+</body>
+</html>
